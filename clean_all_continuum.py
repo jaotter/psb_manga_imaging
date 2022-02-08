@@ -8,6 +8,7 @@ import csv
 plifu_list = []
 chan_lower = []
 chan_upper = []
+radius_list = []
 with open('listobs_params.csv', mode='r') as fl:
     params = csv.reader(fl)
     for i, lines in enumerate(params):
@@ -15,24 +16,35 @@ with open('listobs_params.csv', mode='r') as fl:
             continue
         else:
             plifu_list.append(lines[0])
-            chan_upper.append(lines[-2])
-            chan_lower.append(lines[-1])
+            chan_upper.append(lines[-3])
+            chan_lower.append(lines[-2])
+            radius_list.append(lines[-1])
 
 #CO rest freq
 restfreq = "115.271202GHz"
 
 theoutframe = 'LSRK'
 theveltype = 'radio'
+
 restoringbeam = ['2.5arcsec']
+restoringbeam = 'common'
+
 niter = 100000
 robust_value = 0.5
 thecellsize = '0.5arcsec'
 theimsize=[256,256]
 
-
 import_pipe3d = False
 
+print(plifu_list)
+
+
 for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that galaxy
+    if plateifu == '8655-3701':
+        continue
+    if ind < 7:
+        continue
+
     print('BEGINNING IMAGING FOR '+plateifu)
     datadir = '/lustre/cv/observers/cv-12578/data/'
     savedir = datadir+'data_products/target'+plateifu+'/cont_imaging/'
@@ -51,30 +63,35 @@ for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that g
     spwrange = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1920'
     #spwrange= '1,2,3'
 
+    xpos=str(theimsize[0]/2)
+    ypos=str(theimsize[1]/2)
+    radius = str(radius_list[ind])
+    cleanmask = 'circle[['+xpos+'pix,'+ypos+'pix], '+radius+'pix]'
 
-    imgname = 'target'+plateifu+'_cont_spw0123_r'+str(robust_value)#+'_exchans:'+lower_chan+'-'+upper_chan
+    imgname = 'target'+plateifu+'_cont_spw0123_r'+str(robust_value)+'_mask'#+'_exchans:'+lower_chan+'-'+upper_chan
     d_imgname = imgname+'.dirty'
 
     #creating dirty cube
     tclean(vis=fullvis,
-             imagename=savedir+d_imgname,
-             field=plateifu,
-             spw=spwrange,
-             restfreq=restfreq,
-             threshold='1Jy', # high threshold for dirty cube  
-             imsize=theimsize,  # we used [256,256], just to make sure there is no weird features outside of the galaxy
-             cell=thecellsize,
-             outframe=theoutframe,
-             restoringbeam=restoringbeam,  # to match MaNGA resolution,  # “common” will give you the native beam size of this observation, use restoringbeam=[’2.5arcsec’] to generate a map with resolution similar to that of MaNGA. 
-             specmode='mfs',
-             gridder='standard',
-             veltype=theveltype,
-             niter=0, # 0 for dirty cube 
-             pbcor=False,
-             deconvolver='hogbom',
-             weighting = 'briggs', #'briggs' or 'natural' or 'uniform' 
-             robust = robust_value,
-             interactive=False)
+           imagename=savedir+d_imgname,
+           field=plateifu,
+           spw=spwrange,
+           restfreq=restfreq,
+           threshold='1Jy', # high threshold for dirty cube  
+           imsize=theimsize,  # we used [256,256], just to make sure there is no weird features outside of the galaxy
+           cell=thecellsize,
+           outframe=theoutframe,
+           restoringbeam=restoringbeam,  # to match MaNGA resolution,  # “common” will give you the native beam size of this observation, use restoringbeam=[’2.5arcsec’] to generate a map with resolution similar to that of MaNGA. 
+           specmode='mfs',
+           gridder='standard',
+           veltype=theveltype,
+           niter=0, # 0 for dirty cube 
+           pbcor=False,
+           deconvolver='hogbom',
+           weighting = 'briggs', #'briggs' or 'natural' or 'uniform' 
+           robust = robust_value,
+           mask = cleanmask,
+           interactive=False)
 
     exportfits(imagename=savedir+d_imgname+'.image',
                fitsimage=fitsdir+d_imgname+'.fits',
@@ -103,6 +120,7 @@ for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that g
            deconvolver='hogbom',
            weighting = 'briggs', #'briggs' or 'natural' or 'uniform'  
            robust = robust_value,
+           mask = cleanmask,
            interactive=False)
 
     exportfits(imagename=savedir+c_imgname+'.image',

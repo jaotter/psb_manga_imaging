@@ -45,12 +45,17 @@ theimsize=[256,256]
 velwidth='11km/s'
 
 
-contsub_list = ['8080-3704', '8083-12703', '8982-6104', '9088-9102', '9194-3702', '9494-3702']
+contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702']
 contsub = True
 
 import_pipe3d = False
 
-for ind,plateifu in enumerate(plifu_list[:1]):
+for ind,plateifu in enumerate(plifu_list[1:]):
+    if plateifu == '8655-3701':
+        continue
+    if ind < 7:
+        continue
+
 
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
@@ -64,11 +69,17 @@ for ind,plateifu in enumerate(plifu_list[:1]):
 
     os.chdir(datadir)
     
-    fullvis = 'target'+plateifu+'_vis.ms'
+    fullvis = msdir+'target'+plateifu+'_vis.ms'
     if plateifu == '8081-3702' or plateifu == '9088-9102' or plateifu == '9494-3701':
-        fullvis = 'target'+plateifu+'_concat_vis.ms'
+        fullvis = msdir+'target'+plateifu+'_concat_vis.ms'
 
-    imgname = 'target'+plateifu+'_cube_spw'+spw+'_'+mol+'_r'+str(robust_value)
+    xpos=theimsize[0]/2
+    ypos=theimsize[1]/2
+    radius = radius_list[ind]
+    cleanmask = 'circle[['+xpos+'pix,'+ypos+'pix], '+radius+'pix]'
+
+
+    imgname = 'target'+plateifu+'_cube_spw'+spw+'_r'+str(robust_value)+'_mask'
     
     #continuum subtraction only for those that need it
     if plateifu in contsub_list:
@@ -89,25 +100,26 @@ for ind,plateifu in enumerate(plifu_list[:1]):
 
     #creating dirty cube
     tclean(vis=fullvis,
-             imagename=savedir+d_imgname,
-             field=plateifu,
-             spw=spw,
-             restfreq=restfreq,
-             threshold='1Jy', # high threshold for dirty cube  
-             imsize=theimsize,  # we used [256,256], just to make sure there is no weird features outside of the galaxy
-             cell=thecellsize,
-             outframe=theoutframe,
-             restoringbeam=restoringbeam,  # to match MaNGA resolution,  # “common” will give you the native beam size of this observation, use restoringbeam=[’2.5arcsec’] to generate a map with resolution similar to that of MaNGA. 
-             specmode='cube',
-             gridder='standard',
-             width=velwidth,
-             veltype=theveltype,
-             niter=0, # 0 for dirty cube
-             pbcor=False,
-             deconvolver='hogbom',
-             weighting = 'briggs', #'briggs' or 'natural' or 'uniform' 
-             robust = robust_value,
-             interactive=False)
+           imagename=savedir+d_imgname,
+           field=plateifu,
+           spw=spw,
+           restfreq=restfreq,
+           threshold='1Jy', # high threshold for dirty cube  
+           imsize=theimsize,  # we used [256,256], just to make sure there is no weird features outside of the galaxy
+           cell=thecellsize,
+           outframe=theoutframe,
+           restoringbeam=restoringbeam,  # to match MaNGA resolution,  # “common” will give you the native beam size of this observation, use restoringbeam=[’2.5arcsec’] to generate a map with resolution similar to that of MaNGA. 
+           specmode='cube',
+           gridder='standard',
+           width=velwidth,
+           veltype=theveltype,
+           niter=0, # 0 for dirty cube
+           pbcor=False,
+           deconvolver='hogbom',
+           weighting = 'briggs', #'briggs' or 'natural' or 'uniform' 
+           robust = robust_value,
+           mask = cleanmask,
+           interactive=False)
 
     exportfits(imagename=savedir+d_imgname+'.image',
                fitsimage=fitsdir+d_imgname+'.fits',
@@ -137,6 +149,7 @@ for ind,plateifu in enumerate(plifu_list[:1]):
            deconvolver='hogbom',
            weighting = 'briggs', #'briggs' or 'natural' or 'uniform'       
            robust = robust_value,
+           mask = cleanmask,
            interactive=False)
 
     exportfits(imagename=savedir+c_imgname+'.image',
