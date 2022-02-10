@@ -5,6 +5,12 @@ import csv
         
 
 
+reduction_type = 'mangabeam'
+#reduction_type = 'no_co_spw'
+#reduction_type = 'native_beam'
+
+
+
 plifu_list = []
 chan_lower = []
 chan_upper = []
@@ -26,8 +32,10 @@ restfreq = "115.271202GHz"
 theoutframe = 'LSRK'
 theveltype = 'radio'
 
+
 restoringbeam = ['2.5arcsec']
-restoringbeam = 'common'
+if reduction_type == 'native_beam':
+    restoringbeam = 'common'
 
 niter = 100000
 robust_value = 0.5
@@ -38,17 +46,18 @@ import_pipe3d = False
 
 print(plifu_list)
 
-
-for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that galaxy
-    if plateifu == '8655-3701':
-        continue
-    if ind < 7:
-        continue
+for ind, plateifu in enumerate(plifu_list):
 
     print('BEGINNING IMAGING FOR '+plateifu)
     datadir = '/lustre/cv/observers/cv-12578/data/'
     savedir = datadir+'data_products/target'+plateifu+'/cont_imaging/'
-    fitsdir = datadir+'data_products/fitsimages/'
+    if reduction_type == 'mangabeam':
+        fitsdir = datadir+'data_products/fitsimages/cont_images/mangabeam/'
+    if reduction_type == 'no_co_spw':
+        fitsdir = datadir+'data_products/fitsimages/cont_images/no_co_spw/'
+    if reduction_type == 'native_beam':
+        fitsdir = datadir+'data_products/fitsimages/cont_images/native_beam/'
+
     msdir = datadir+'split_ms/'
     pipe3ddir = datadir+'pipe3d/'
 
@@ -60,17 +69,33 @@ for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that g
     if plateifu == '8081-3702' or plateifu == '9088-9102' or plateifu == '9494-3701':
         fullvis = msdir+'target'+plateifu+'_concat_vis.ms'
 
-    spwrange = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1920'
-    #spwrange= '1,2,3'
 
     xpos=str(theimsize[0]/2)
     ypos=str(theimsize[1]/2)
     radius = str(radius_list[ind])
     cleanmask = 'circle[['+xpos+'pix,'+ypos+'pix], '+radius+'pix]'
 
-    imgname = 'target'+plateifu+'_cont_spw0123_r'+str(robust_value)+'_mask'#+'_exchans:'+lower_chan+'-'+upper_chan
-    d_imgname = imgname+'.dirty'
+    spwrange = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1919'
+    if reduction_type == 'no_co_spw':
+        spwrange = '1,2,3'
+        imgname = 'target'+plateifu+'_cont_spw123_r'+str(robust_value)+'_mangabeam_mask'
+    if reduction_type == 'native_beam':
+        imgname = 'target'+plateifu+'_cont_spw0123_r'+str(robust_value)+'_mask'
+    if reduction_type == 'mangabeam':
+        imgname = 'target'+plateifu+'_cont_spw0123_r'+str(robust_value)+'_mangabeam_mask'
 
+    if plateifu == '8655-3701':
+        spwrange = '0,1:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~479'
+        if reduction_type == 'no_co_spw':
+            spwrange = '0'
+            imgname = 'target'+plateifu+'_cont_spw1_r'+str(robust_value)+'_mangabeam_mask'
+        if reduction_type == 'native_beam':
+            imgname = 'target'+plateifu+'_cont_spw01_r'+str(robust_value)+'_mask'
+        if reduction_type == 'mangabeam':
+            imgname = 'target'+plateifu+'_cont_spw01_r'+str(robust_value)+'_mangabeam_mask'
+    
+    d_imgname = imgname+'.dirty'
+    
     #creating dirty cube
     tclean(vis=fullvis,
            imagename=savedir+d_imgname,
@@ -93,9 +118,9 @@ for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that g
            mask = cleanmask,
            interactive=False)
 
-    exportfits(imagename=savedir+d_imgname+'.image',
-               fitsimage=fitsdir+d_imgname+'.fits',
-               overwrite=True)
+    #exportfits(imagename=savedir+d_imgname+'.image',
+    #           fitsimage=fitsdir+d_imgname+'.fits',
+    #           overwrite=True)
     
     imstats = imstat(savedir+d_imgname+'.image')
     imgrms = imstats['rms'][0]
@@ -137,8 +162,9 @@ for ind, plateifu in enumerate(plifu_list): #skipping first bc I tested w that g
     exportfits(imagename=savedir+c_imgname_pbcor+'.image',
                 fitsimage=fitsdir+c_imgname_pbcor+'.img.fits',
                 overwrite=True)
-
+    
     # Regrid the cube to MaNGA grid (we used H-alpha map from Pipe3D as the template. The fits header of Pipe3D map was not completed, Hsi-An had to fix the header first before using it as a template.   
+
     if import_pipe3d == True:
         importfits(fitsimage=pipe3ddir+'manga-'+plateifu+'.Pipe3D.cube.edit.fits', imagename=savedir+'manga-'+plateifu+'.Pipe3D.cube.edit.image')
     

@@ -4,24 +4,77 @@ import os
 import csv 
 
 #spw = os.getenv('SPW')
-spw = '0'
 
-if spw == '0':
-    mol = 'CO'
+reduction_type = 'CO_mangabeam'
+reduction_type = 'CO_native_beam'
+reduction_type = 'CO_native_beam_r=-2'
+reduction_type = 'CO_native_beam_r=2'
+
+reduction_type = 'spw1_r=2'
+reduction_type = 'spw2_r=2'
+reduction_type = 'spw3_r=2'
+
+if reduction_type == 'CO_mangabeam':
+    robust_value = 0.5
+    restoringbeam = ['2.5arcsec']
+    spw = '0'
     restfreq = "115.2601925GHz"
-if spw == '1':
-    mol = 'CN'
+    dir_name = 'mangabeam/'
+    imgname_end = '_mangabeam_mask'
+
+if reduction_type == 'CO_native_beam':
+    robust_value = 0.5
+    restoringbeam = 'common'
+    spw = '0'
+    restfreq = "115.2601925GHz"
+    dir_name = 'native_beam/'
+    imgname_end = '_mask'
+
+if reduction_type == 'CO_native_beam_r=-2':
+    robust_value = -2
+    restoringbeam = 'common'
+    spw = '0'
+    restfreq = "115.2601925GHz"
+    dir_name = 'robust_-2/'
+    imgname_end = '_mask'
+
+if reduction_type == 'CO_native_beam_r=2':
+    robust_value = 2
+    restoringbeam = 'common'
+    spw = '0'
+    restfreq = "115.2601925GHz"
+    dir_name = 'robust_+2/'
+    imgname_end = '_mask'
+
+if reduction_type == 'spw1_r=2':
+    robust_value = 2
+    restoringbeam = 'common'
+    spw = '1'
     restfreq = "113.5GHz"
-if spw == '2':
-    mol = 'CH3OH'
+    dir_name = 'robust_+2/'
+    imgname_end = '_mask'
+
+if reduction_type == 'spw2_r=2':
+    robust_value = 2
+    restoringbeam = 'common'
+    spw = '2'
     restfreq = "107.013831GHz"
-if spw == '3':
-    mol = 'HC3N'
+    dir_name = 'robust_+2/'
+    imgname_end = '_mask'
+
+if reduction_type == 'spw3_r=2':
+    robust_value = 2
+    restoringbeam = 'common'
+    spw = '3'
     restfreq = "100.076392GHz" #v=0, J=11-10
+    dir_name = 'robust_+2/'
+    imgname_end = '_mask'
 
 plifu_list = []
 chan_lower = []
 chan_upper = []
+radius_list = []
+
 with open('listobs_params.csv', mode='r') as fl:
     params = csv.reader(fl)
     for i, lines in enumerate(params):
@@ -29,20 +82,20 @@ with open('listobs_params.csv', mode='r') as fl:
             continue
         else:
             plifu_list.append(lines[0])
-            chan_upper.append(lines[-2])
-            chan_lower.append(lines[-1])
+            chan_upper.append(lines[-3])
+            chan_lower.append(lines[-2])
+            radius_list.append(lines[-1])
 
 theoutframe = 'LSRK'
 theveltype = 'radio'
-restoringbeam = ['2.5arcsec']
-#restoringbeam = 'common'
 chanchunks = -1
 niter = 100000
-robust_value = 0.5
 nterms = 1
 thecellsize = '0.5arcsec'
 theimsize=[256,256]
 velwidth='11km/s'
+
+
 
 
 contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702']
@@ -50,17 +103,13 @@ contsub = True
 
 import_pipe3d = False
 
-for ind,plateifu in enumerate(plifu_list[1:]):
-    if plateifu == '8655-3701':
-        continue
-    if ind < 7:
-        continue
-
+for ind,plateifu in enumerate(plifu_list):
+    
 
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
     savedir = datadir+'data_products/target'+plateifu+'/spw'+spw+'_cube/'
-    fitsdir = datadir+'data_products/fitsimages/'
+    fitsdir = datadir+'data_products/fitsimages/spw'+spw+'/'+dir_name
     msdir = datadir+'split_ms/'
     pipe3ddir = datadir+'pipe3d/'
 
@@ -69,21 +118,27 @@ for ind,plateifu in enumerate(plifu_list[1:]):
 
     os.chdir(datadir)
     
+    if plateifu == '8655-3701':
+        if spw == '0':
+            spw = '1'
+        else: #skip this galaxy if not imaging CO
+            continue
+
     fullvis = msdir+'target'+plateifu+'_vis.ms'
     if plateifu == '8081-3702' or plateifu == '9088-9102' or plateifu == '9494-3701':
         fullvis = msdir+'target'+plateifu+'_concat_vis.ms'
 
-    xpos=theimsize[0]/2
-    ypos=theimsize[1]/2
-    radius = radius_list[ind]
+    xpos=str(theimsize[0]/2)
+    ypos=str(theimsize[1]/2)
+    radius = str(radius_list[ind])
     cleanmask = 'circle[['+xpos+'pix,'+ypos+'pix], '+radius+'pix]'
+    print(cleanmask)
 
-
-    imgname = 'target'+plateifu+'_cube_spw'+spw+'_r'+str(robust_value)+'_mask'
+    imgname = 'target'+plateifu+'_cube_spw'+spw+'_r'+str(robust_value)+imgname_end
     
     #continuum subtraction only for those that need it
     if plateifu in contsub_list:
-        cont_spw = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1920'
+        cont_spw = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1919'
         if contsub == True:
             uvcontsub(vis=fullvis,
                       spw='0,1,2,3',
@@ -94,7 +149,8 @@ for ind,plateifu in enumerate(plifu_list[1:]):
                       fitorder=0,
                       want_cont=False) 
 
-        imgname = 'target'+plateifu+'_cube_spw'+spw+'_'+mol+'_r'+str(robust_value)+'_contsub'
+        imgname = imgname + '_contsub'
+
 
     d_imgname = imgname+'.dirty'
 
@@ -121,9 +177,9 @@ for ind,plateifu in enumerate(plifu_list[1:]):
            mask = cleanmask,
            interactive=False)
 
-    exportfits(imagename=savedir+d_imgname+'.image',
-               fitsimage=fitsdir+d_imgname+'.fits',
-               overwrite=True)
+    #exportfits(imagename=savedir+d_imgname+'.image',
+    #           fitsimage=fitsdir+d_imgname+'.fits',
+    #           overwrite=True)
 
     imstats = imstat(savedir+d_imgname+'.image')
     imgrms = imstats['rms'][0]
