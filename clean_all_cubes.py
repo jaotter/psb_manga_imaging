@@ -5,14 +5,16 @@ import csv
 
 #spw = os.getenv('SPW')
 
-reduction_type = 'CO_mangabeam'
-reduction_type = 'CO_native_beam'
-reduction_type = 'CO_native_beam_r=-2'
-reduction_type = 'CO_native_beam_r=2'
+#reduction_type = 'CO_mangabeam'
+#reduction_type = 'CO_native_beam'
+#reduction_type = 'CO_native_beam_r=-2'
+#reduction_type = 'CO_native_beam_r=2'
 
-reduction_type = 'spw1_r=2'
-reduction_type = 'spw2_r=2'
+#reduction_type = 'spw1_r=2'
+#reduction_type = 'spw2_r=2'
 reduction_type = 'spw3_r=2'
+
+print(reduction_type)
 
 if reduction_type == 'CO_mangabeam':
     robust_value = 0.5
@@ -95,16 +97,14 @@ thecellsize = '0.5arcsec'
 theimsize=[256,256]
 velwidth='11km/s'
 
-
-
+changespw = False
 
 contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702']
 contsub = True
 
-import_pipe3d = False
+print(plifu_list)
 
 for ind,plateifu in enumerate(plifu_list):
-    
 
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
@@ -121,6 +121,7 @@ for ind,plateifu in enumerate(plifu_list):
     if plateifu == '8655-3701':
         if spw == '0':
             spw = '1'
+            changespw = True
         else: #skip this galaxy if not imaging CO
             continue
 
@@ -224,7 +225,7 @@ for ind,plateifu in enumerate(plifu_list):
                 overwrite=True)
 
     # Regrid the cube to MaNGA grid (we used H-alpha map from Pipe3D as the template. The fits header of Pipe3D map was not completed, Hsi-An had to fix the header first before using it as a template.
-    if import_pipe3d == True:
+    if not os.path.exists(savedir+'manga-'+plateifu+'.Pipe3D.cube.edit.image'):
         importfits(fitsimage=pipe3ddir+'manga-'+plateifu+'.Pipe3D.cube.edit.fits', imagename=savedir+'manga-'+plateifu+'.Pipe3D.cube.edit.image')
 
     imregrid(imagename=savedir+c_imgname_pbcor+'.image',
@@ -236,3 +237,7 @@ for ind,plateifu in enumerate(plifu_list):
     exportfits(imagename=savedir+c_imgname_pbcor+'.regrid.image',
                fitsimage=fitsdir+c_imgname_pbcor+'.regrid.cube.fits',
                overwrite=True)
+
+    if changespw == True:
+        spw = '0'
+        changespw = False
