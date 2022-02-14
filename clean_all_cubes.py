@@ -99,15 +99,11 @@ velwidth='11km/s'
 
 changespw = False
 
-contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702', '8655-3701']
-contsub = True
+contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3701', '8655-3701']
 
 print(plifu_list)
 
 for ind,plateifu in enumerate(plifu_list):
-
-    if plateifu != onlygalaxy:
-        continue
 
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
@@ -116,10 +112,6 @@ for ind,plateifu in enumerate(plifu_list):
     msdir = datadir+'split_ms/'
     pipe3ddir = datadir+'pipe3d/'
 
-    if not os.path.isdir(savedir):
-        os.mkdir(savedir)
-
-    os.chdir(datadir)
     
     if plateifu == '8655-3701':
         if spw == '0':
@@ -127,6 +119,14 @@ for ind,plateifu in enumerate(plifu_list):
             changespw = True
         else: #skip this galaxy if not imaging CO
             continue
+
+    if not os.path.isdir(savedir):
+        os.mkdir(savedir)
+    if not os.path.isdir(fitsdir):
+        os.mkdir(fitsdir)
+
+    os.chdir(datadir)
+
 
     fullvis = msdir+'target'+plateifu+'_vis.ms'
     if plateifu == '8081-3702' or plateifu == '9088-9102' or plateifu == '9494-3701':
@@ -136,7 +136,6 @@ for ind,plateifu in enumerate(plifu_list):
     ypos=str(theimsize[1]/2)
     radius = str(radius_list[ind])
     cleanmask = 'circle[['+xpos+'pix,'+ypos+'pix], '+radius+'pix]'
-    print(cleanmask)
 
     imgname = 'target'+plateifu+'_cube_spw'+spw+'_r'+str(robust_value)+imgname_end
     
@@ -162,8 +161,6 @@ for ind,plateifu in enumerate(plifu_list):
         else:
             print('Using previously generated continuum subtracted MS')
         imgname = imgname + '_contsub'
-    else:
-        continue
 
 
     d_imgname = imgname+'.dirty'
