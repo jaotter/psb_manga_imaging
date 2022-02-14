@@ -5,14 +5,14 @@ import csv
 
 #spw = os.getenv('SPW')
 
-#reduction_type = 'CO_mangabeam'
+reduction_type = 'CO_mangabeam'
 #reduction_type = 'CO_native_beam'
 #reduction_type = 'CO_native_beam_r=-2'
 #reduction_type = 'CO_native_beam_r=2'
 
 #reduction_type = 'spw1_r=2'
 #reduction_type = 'spw2_r=2'
-reduction_type = 'spw3_r=2'
+#reduction_type = 'spw3_r=2'
 
 print(reduction_type)
 
@@ -99,12 +99,15 @@ velwidth='11km/s'
 
 changespw = False
 
-contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702']
+contsub_list = ['8080-3704', '8083-12703', '8086-3704', '8982-6104', '9088-9102', '9194-3702', '9494-3702', '8655-3701']
 contsub = True
 
 print(plifu_list)
 
 for ind,plateifu in enumerate(plifu_list):
+
+    if plateifu != onlygalaxy:
+        continue
 
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
@@ -140,17 +143,27 @@ for ind,plateifu in enumerate(plifu_list):
     #continuum subtraction only for those that need it
     if plateifu in contsub_list:
         cont_spw = '1,2,3,0:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~1919'
-        if contsub == True:
+        sub_spw = '0,1,2,3'
+        if plateifu == '8655-3701':
+            cont_spw = '0,1:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~479'
+            sub_spw = '1'
+
+        fullvis = fullvis + '.contsub'
+        if not os.path.exists(fullvis):
+            print("Can't find continuum subtracted MS, running uvcontsub")
             uvcontsub(vis=fullvis,
-                      spw='0,1,2,3',
+                      spw=sub_spw,
                       fitspw=cont_spw,
                       excludechans=False,
                       combine='spw',
                       solint='int',
                       fitorder=0,
-                      want_cont=False) 
-
+                      want_cont=False)
+        else:
+            print('Using previously generated continuum subtracted MS')
         imgname = imgname + '_contsub'
+    else:
+        continue
 
 
     d_imgname = imgname+'.dirty'
