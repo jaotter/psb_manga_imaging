@@ -14,6 +14,8 @@ reduction_type = 'CO_mangabeam'
 #reduction_type = 'spw2_r=2'
 #reduction_type = 'spw3_r=2'
 
+startind = 5
+
 print(reduction_type)
 
 if reduction_type == 'CO_mangabeam':
@@ -105,6 +107,9 @@ print(plifu_list)
 
 for ind,plateifu in enumerate(plifu_list):
 
+    if ind < startind:
+        continue
+    
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
     datadir = '/lustre/cv/observers/cv-12578/data/'
     savedir = datadir+'data_products/target'+plateifu+'/spw'+spw+'_cube/'
@@ -145,10 +150,10 @@ for ind,plateifu in enumerate(plifu_list):
         sub_spw = '0,1,2,3'
         if plateifu == '8655-3701':
             cont_spw = '0,1:0~'+chan_lower[ind]+';'+chan_upper[ind]+'~479'
-            sub_spw = '1'
+            sub_spw = '0,1'
 
-        fullvis = fullvis + '.contsub'
-        if not os.path.exists(fullvis):
+        fullvis_cs = fullvis + '.contsub'
+        if not os.path.exists(fullvis_cs):
             print("Can't find continuum subtracted MS, running uvcontsub")
             uvcontsub(vis=fullvis,
                       spw=sub_spw,
@@ -158,6 +163,7 @@ for ind,plateifu in enumerate(plifu_list):
                       solint='int',
                       fitorder=0,
                       want_cont=False)
+            fullvis = fullvis_cs
         else:
             print('Using previously generated continuum subtracted MS')
         imgname = imgname + '_contsub'
