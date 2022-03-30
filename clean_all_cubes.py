@@ -5,16 +5,16 @@ import csv
 
 #spw = os.getenv('SPW')
 
-reduction_type = 'CO_mangabeam'
+#reduction_type = 'CO_mangabeam'
 #reduction_type = 'CO_native_beam'
 #reduction_type = 'CO_native_beam_r=-2'
 #reduction_type = 'CO_native_beam_r=2'
 
-#reduction_type = 'spw1_r=2'
+reduction_type = 'spw1_r=2'
 #reduction_type = 'spw2_r=2'
 #reduction_type = 'spw3_r=2'
 
-startind = 5
+startind = 0
 
 print(reduction_type)
 
@@ -108,6 +108,9 @@ print(plifu_list)
 for ind,plateifu in enumerate(plifu_list):
 
     if ind < startind:
+        continue
+
+    if plateifu not in ['8655-3701','9494-3701']:
         continue
     
     print('BEGINNING IMAGING FOR '+plateifu+' SPW '+spw)
